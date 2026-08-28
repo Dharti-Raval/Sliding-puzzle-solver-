@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Optimal Sliding Puzzle Solver</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Optimal Sliding Puzzle Solver</h1>
+    <p class="subtitle">8-Puzzle &amp; 15-Puzzle &mdash; solved optimally with A* / IDA* + Manhattan Distance</p>
+
+    <div class="controls">
+      <label for="sizeSelect">Puzzle size:</label>
+      <select id="sizeSelect">
+        <option value="3">3 &times; 3 (8-Puzzle)</option>
+        <option value="4">4 &times; 4 (15-Puzzle)</option>
+      </select>
+
+      <button id="randomBtn">🎲 Random Puzzle</button>
+      <button id="resetBtn">↺ Reset to Goal</button>
+      <button id="solveBtn" class="primary">▶ Solve</button>
+    </div>
+
+    <div class="main-area">
+      <div class="board-panel">
+        <h2>Board (edit tiles directly)</h2>
+        <div id="board" class="board"></div>
+        <p class="hint">Click a cell then type a number, or use the buttons above. Each number 0..N-1 must appear exactly once (0 = blank).</p>
+      </div>
+
+      <div class="result-panel">
+        <h2>Result</h2>
+        <div id="status" class="status">Enter a puzzle and click Solve.</div>
+        <div id="details" class="details"></div>
+        <div class="animation-controls" id="animControls" style="display:none;">
+          <button id="playBtn">▶ Play Animation</button>
+          <span id="stepLabel">Step 0 / 0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="moves-panel">
+      <h2>Move Sequence</h2>
+      <div id="movesList" class="moves-list">No solution yet.</div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
