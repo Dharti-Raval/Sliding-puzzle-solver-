@@ -78,6 +78,14 @@ def api_solve():
     moves, algorithm = solve(board, size)
     elapsed = time.time() - start
 
+    if moves is None:
+        return jsonify({
+            "error": "Solver could not find a solution (this should not happen for a solvable board). Try a simpler puzzle.",
+            "solvable": True,
+            "algorithm": algorithm,
+            "time_seconds": round(elapsed, 4),
+        }), 500
+
     states = moves_to_states(board, moves)
 
     return jsonify({
