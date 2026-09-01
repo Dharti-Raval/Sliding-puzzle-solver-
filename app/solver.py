@@ -5,20 +5,21 @@ Optimal solvers for the N-puzzle.
 - solve_idastar: Iterative Deepening A*, used for the 4x4 (15-puzzle) because
   it needs only O(depth) memory instead of A*'s O(states) memory.
 
-Both use f(n) = g(n) + h(n) with the Manhattan distance heuristic, which is
-admissible and consistent, so both return a minimum-length (optimal) solution.
+Both use f(n) = g(n) + h(n) with the Manhattan + Linear Conflict heuristic,
+which is admissible and consistent, so both return a minimum-length (optimal) solution.
 """
 
 import heapq
-import time
 import sys
-sys.setrecursionlimit(2000)   # 15-puzzle never needs this much, but cheap insurance
-# Soft limit so the request doesn't get killed by Render / Gunicorn
-IDA_TIMEOUT_SECONDS = 25
-from app.heuristics import manhattan_distance
+import time
+
+from app.heuristics import heuristic
 from app.puzzle import get_neighbors, goal_state
 
+sys.setrecursionlimit(2000)
+
 FOUND = "FOUND"
+IDA_TIMEOUT_SECONDS = 25          # soft timeout to avoid Render killing the request
 
 
 def solve_astar(board, size):
@@ -29,7 +30,7 @@ def solve_astar(board, size):
 
     g_score = {board: 0}
     counter = 0  # tie-breaker so heapq never compares boards directly
-    open_heap = [(manhattan_distance(board, size), counter, board, [])]
+    open_heap = [(heuristic(board, size), counter, board, [])]
     closed = set()
 
     while open_heap:
@@ -47,7 +48,7 @@ def solve_astar(board, size):
                 continue
             g_score[neighbor] = tentative_g
             counter += 1
-            f = tentative_g + manhattan_distance(neighbor, size)
+            f = tentative_g + heuristic(neighbor, size)
             heapq.heappush(open_heap, (f, counter, neighbor, path + [move]))
 
     return None
@@ -59,14 +60,14 @@ def solve_idastar(board, size):
     if board == goal:
         return []
 
-    bound = manhattan_distance(board, size)
+    bound = heuristic(board, size)
     path_boards = [board]
     path_moves = []
     deadline = time.time() + IDA_TIMEOUT_SECONDS
 
     while True:
         if time.time() > deadline:
-            return None          # soft timeout – caller will show a friendly error
+            return None
 
         result = _ida_search(path_boards, path_moves, 0, bound, size, goal, deadline)
         if result == FOUND:
@@ -75,12 +76,13 @@ def solve_idastar(board, size):
             return None
         bound = result
 
+
 def _ida_search(path_boards, path_moves, g, bound, size, goal, deadline):
     if time.time() > deadline:
-        return float("inf")          # treat timeout as “no solution this iteration”
+        return float("inf")
 
     current = path_boards[-1]
-    f = g + manhattan_distance(current, size)
+    f = g + heuristic(current, size)
     if f > bound:
         return f
     if current == goal:
@@ -91,7 +93,7 @@ def _ida_search(path_boards, path_moves, g, bound, size, goal, deadline):
 
     for neighbor, move in get_neighbors(current, size):
         if neighbor == prev_board:
-            continue
+            continue  # don't immediately undo the last move
         path_boards.append(neighbor)
         path_moves.append(move)
 
@@ -105,7 +107,8 @@ def _ida_search(path_boards, path_moves, g, bound, size, goal, deadline):
         path_moves.pop()
 
     return min_exceeded
-  
+
+
 def solve(board, size):
     """Pick the right optimal algorithm for the given puzzle size."""
     if size == 3:
