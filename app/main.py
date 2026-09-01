@@ -12,15 +12,19 @@ app = Flask(__name__)
 
 
 def moves_to_states(board, moves):
-    """Replay the move list on `board` and return every intermediate state."""
     size = int(len(board) ** 0.5)
     states = [list(board)]
     current = board
     for move_tile in moves:
+        found = False
         for neighbor, moved_tile in get_neighbors(current, size):
             if moved_tile == move_tile:
                 current = neighbor
+                found = True
                 break
+        if not found:
+            # should never happen with a correct solver
+            break
         states.append(list(current))
     return states
 
