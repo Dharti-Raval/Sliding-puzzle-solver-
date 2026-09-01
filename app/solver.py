@@ -11,7 +11,8 @@ admissible and consistent, so both return a minimum-length (optimal) solution.
 
 import heapq
 import time
-
+import sys
+sys.setrecursionlimit(2000)   # 15-puzzle never needs this much, but cheap insurance
 # Soft limit so the request doesn't get killed by Render / Gunicorn
 IDA_TIMEOUT_SECONDS = 25
 from app.heuristics import manhattan_distance
