@@ -111,7 +111,23 @@ async function solvePuzzle() {
     return;
   }
 
-  setStatus(size === 4 ? "Solving… (hard 4×4 can take up to ~25 s)" : "Solving…");
+  // Rough difficulty estimate (Manhattan distance)
+  const manh = currentBoard.reduce((sum, val, idx) => {
+    if (val === 0) return sum;
+    const goalIdx = val - 1;
+    const curR = Math.floor(idx / size), curC = idx % size;
+    const goalR = Math.floor(goalIdx / size), goalC = goalIdx % size;
+    return sum + Math.abs(curR - goalR) + Math.abs(curC - goalC);
+  }, 0);
+
+  if (size === 4 && manh > 35) {
+    setStatus(`Very hard position (Manhattan ≈ ${manh}). This may take 30–90 seconds…`, "unsolvable");
+  } else if (size === 4 && manh > 25) {
+    setStatus(`Hard position (Manhattan ≈ ${manh}). Solving…`, "");
+  } else {
+    setStatus("Solving…");
+  }
+
   detailsEl.innerHTML = "";
   movesListEl.textContent = "";
 
