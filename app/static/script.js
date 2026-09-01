@@ -33,6 +33,7 @@ function renderBoard(values) {
     cell.maxLength = 2;
     cell.dataset.idx = idx;
     cell.addEventListener("change", onCellEdit);
+    cell.addEventListener("blur", onCellEdit);   // also update on blur
     boardEl.appendChild(cell);
   });
 }
@@ -41,12 +42,14 @@ function onCellEdit(e) {
   const idx = parseInt(e.target.dataset.idx, 10);
   let val = e.target.value.trim();
   val = val === "" ? 0 : parseInt(val, 10);
+
   if (isNaN(val) || val < 0 || val >= size * size) {
+    // restore previous value
     e.target.value = board[idx] === 0 ? "" : board[idx];
     return;
   }
+
   board[idx] = val;
-  // only update the CSS class of this cell
   e.target.className = "cell" + (val === 0 ? " blank" : "");
   e.target.value = val === 0 ? "" : val;
 }
@@ -90,23 +93,25 @@ function resetToGoal() {
   setStatus("Reset to goal state.");
   detailsEl.innerHTML = "";
   movesListEl.textContent = "No solution yet.";
+  animControls.style.display = "none";
 }
 
 async function solvePuzzle() {
   clearAnimation();
   const currentBoard = readBoardFromInputs();
 
-  // quick client-side validation
+  // Client-side uniqueness check
   const sorted = [...currentBoard].sort((a, b) => a - b);
-  const expected = Array.from({length: size * size}, (_, i) => i);
+  const expected = Array.from({ length: size * size }, (_, i) => i);
   if (JSON.stringify(sorted) !== JSON.stringify(expected)) {
-    setStatus("Invalid board: each number from 0 to " + (size*size-1) + " must appear exactly once.", "unsolvable");
+    setStatus(
+      "Invalid board: each number from 0 to " + (size * size - 1) + " must appear exactly once.",
+      "unsolvable"
+    );
     return;
   }
 
-  setStatus("Solving… (hard 4×4 can take up to ~25 s)");
-  // … rest of the function stays the same
-}
+  setStatus(size === 4 ? "Solving… (hard 4×4 can take up to ~25 s)" : "Solving…");
   detailsEl.innerHTML = "";
   movesListEl.textContent = "";
 
