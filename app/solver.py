@@ -74,7 +74,10 @@ def solve_idastar(board, size):
             return None
         bound = result
 
-def _ida_search(path_boards, path_moves, g, bound, size, goal):
+def _ida_search(path_boards, path_moves, g, bound, size, goal, deadline):
+    if time.time() > deadline:
+        return float("inf")          # treat timeout as “no solution this iteration”
+
     current = path_boards[-1]
     f = g + manhattan_distance(current, size)
     if f > bound:
@@ -87,11 +90,11 @@ def _ida_search(path_boards, path_moves, g, bound, size, goal):
 
     for neighbor, move in get_neighbors(current, size):
         if neighbor == prev_board:
-            continue  # don't immediately undo the last move
+            continue
         path_boards.append(neighbor)
         path_moves.append(move)
 
-        result = _ida_search(path_boards, path_moves, g + 1, bound, size, goal)
+        result = _ida_search(path_boards, path_moves, g + 1, bound, size, goal, deadline)
         if result == FOUND:
             return FOUND
         if result < min_exceeded:
@@ -101,8 +104,7 @@ def _ida_search(path_boards, path_moves, g, bound, size, goal):
         path_moves.pop()
 
     return min_exceeded
-
-
+  
 def solve(board, size):
     """Pick the right optimal algorithm for the given puzzle size."""
     if size == 3:
