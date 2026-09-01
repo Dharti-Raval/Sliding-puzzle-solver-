@@ -80,11 +80,12 @@ def api_solve():
 
     if moves is None:
         return jsonify({
-            "error": "Solver could not find a solution (this should not happen for a solvable board). Try a simpler puzzle.",
+            "error": "This 4×4 position is too hard for the current time limit (~25 s). "
+                     "Try the Random Puzzle button or a board that needs fewer moves.",
             "solvable": True,
             "algorithm": algorithm,
             "time_seconds": round(elapsed, 4),
-        }), 500
+        }), 408   # or 500 – 408 Request Timeout is semantically nicer
 
     states = moves_to_states(board, moves)
 
