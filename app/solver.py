@@ -10,7 +10,10 @@ admissible and consistent, so both return a minimum-length (optimal) solution.
 """
 
 import heapq
+import time
 
+# Soft limit so the request doesn't get killed by Render / Gunicorn
+IDA_TIMEOUT_SECONDS = 25
 from app.heuristics import manhattan_distance
 from app.puzzle import get_neighbors, goal_state
 
@@ -50,7 +53,7 @@ def solve_astar(board, size):
 
 
 def solve_idastar(board, size):
-    """Return the optimal list of moved-tile values, or None if unsolvable."""
+    """Return the optimal list of moved-tile values, or None if unsolvable / timed out."""
     goal = goal_state(size)
     if board == goal:
         return []
@@ -58,15 +61,18 @@ def solve_idastar(board, size):
     bound = manhattan_distance(board, size)
     path_boards = [board]
     path_moves = []
+    deadline = time.time() + IDA_TIMEOUT_SECONDS
 
     while True:
-        result = _ida_search(path_boards, path_moves, 0, bound, size, goal)
+        if time.time() > deadline:
+            return None          # soft timeout – caller will show a friendly error
+
+        result = _ida_search(path_boards, path_moves, 0, bound, size, goal, deadline)
         if result == FOUND:
             return list(path_moves)
         if result == float("inf"):
             return None
         bound = result
-
 
 def _ida_search(path_boards, path_moves, g, bound, size, goal):
     current = path_boards[-1]
