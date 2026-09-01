@@ -41,9 +41,14 @@ function onCellEdit(e) {
   const idx = parseInt(e.target.dataset.idx, 10);
   let val = e.target.value.trim();
   val = val === "" ? 0 : parseInt(val, 10);
-  if (isNaN(val)) val = board[idx];
+  if (isNaN(val) || val < 0 || val >= size * size) {
+    e.target.value = board[idx] === 0 ? "" : board[idx];
+    return;
+  }
   board[idx] = val;
-  renderBoard(board);
+  // only update the CSS class of this cell
+  e.target.className = "cell" + (val === 0 ? " blank" : "");
+  e.target.value = val === 0 ? "" : val;
 }
 
 function readBoardFromInputs() {
