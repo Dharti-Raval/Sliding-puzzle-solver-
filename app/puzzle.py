@@ -56,7 +56,7 @@ def random_solvable_board(size, shuffle_moves=None):
     construction and keeps the scramble at a solvable difficulty.
     """
     if shuffle_moves is None:
-        shuffle_moves = 60 if size == 3 else 30
+       shuffle_moves = 60 if size == 3 else 40 
 
     board = goal_state(size)
     last_idx = None
