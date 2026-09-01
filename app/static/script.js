@@ -95,7 +95,18 @@ function resetToGoal() {
 async function solvePuzzle() {
   clearAnimation();
   const currentBoard = readBoardFromInputs();
-  setStatus("Solving...");
+
+  // quick client-side validation
+  const sorted = [...currentBoard].sort((a, b) => a - b);
+  const expected = Array.from({length: size * size}, (_, i) => i);
+  if (JSON.stringify(sorted) !== JSON.stringify(expected)) {
+    setStatus("Invalid board: each number from 0 to " + (size*size-1) + " must appear exactly once.", "unsolvable");
+    return;
+  }
+
+  setStatus("Solving… (hard 4×4 can take up to ~25 s)");
+  // … rest of the function stays the same
+}
   detailsEl.innerHTML = "";
   movesListEl.textContent = "";
 
