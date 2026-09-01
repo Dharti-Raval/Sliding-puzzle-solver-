@@ -19,7 +19,7 @@ from app.puzzle import get_neighbors, goal_state
 sys.setrecursionlimit(2000)
 
 FOUND = "FOUND"
-IDA_TIMEOUT_SECONDS = 25          # soft timeout to avoid Render killing the request
+IDA_TIMEOUT_SECONDS = 90          # soft timeout to avoid Render killing the request
 
 
 def solve_astar(board, size):
