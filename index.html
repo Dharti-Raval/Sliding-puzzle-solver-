@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Slide: N-Puzzle game and optimal solver</title>
+<style>
+:root{--bg:#f3f1ec;--fg:#1d2321;--card:#fbfaf7;--mut:#66706b;--bd:#d9d5cb;--ac:#1f6f5c;--acfg:#fff;--tile:#fff;--tfg:#1d2321;--hole:#e4e0d5;--bad:#b3402e;--ok:#1f6f5c;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a18;--fg:#e8ece9;--card:#1c2421;--mut:#9aa6a0;--bd:#2f3a36;--ac:#5fc4a8;--acfg:#0c1a15;--tile:#2a3531;--tfg:#f0f4f1;--hole:#0f1513;--bad:#e07a66;--ok:#5fc4a8;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a18;--fg:#e8ece9;--card:#1c2421;--mut:#9aa6a0;--bd:#2f3a36;--ac:#5fc4a8;--acfg:#0c1a15;--tile:#2a3531;--tfg:#f0f4f1;--hole:#0f1513;--bad:#e07a66;--ok:#5fc4a8;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px}
+h1{margin:0;font:700 28px/1.2 Georgia,"Times New Roman",serif;letter-spacing:-.01em}
+header p{margin:4px 0 0;color:var(--mut);max-width:60ch}
+h2{font:600 15px/1.3 Georgia,serif;margin:0 0 8px}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2px}
+select,input,button{font:inherit;color:var(--fg)}
+select,input[type=text],input[type=number]{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;min-height:36px}
+button{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;min-height:36px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--ac)}button:disabled{opacity:.45;cursor:not-allowed}
+button.pri{background:var(--ac);color:var(--acfg);border-color:var(--ac);font-weight:600}
+:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+#board{position:relative;width:100%;max-width:460px;aspect-ratio:1;margin:0 auto;background:var(--hole);border-radius:12px;container-type:inline-size;touch-action:manipulation}
+.tile{position:absolute;left:0;top:0;width:calc(100%/var(--n));height:calc(100%/var(--n));border:3px solid transparent;background-clip:padding-box;transition:transform var(--dur,.2s) ease;font-weight:700;font-size:calc(40cqw/var(--n));display:flex;align-items:center;justify-content:center;padding:0;border-radius:12px;background-color:var(--tile);color:var(--tfg);box-shadow:inset 0 0 0 1px var(--bd)}
+.nt .tile{transition:none}
+.tile.can{box-shadow:inset 0 0 0 2px var(--ac);cursor:pointer}
+.tile.bad{animation:sh .3s;box-shadow:inset 0 0 0 2px var(--bad)}
+.tile.blank{background:transparent;box-shadow:inset 0 0 0 2px dashed var(--bd);border:3px dashed var(--bd);background-clip:border-box;pointer-events:none}
+@keyframes sh{25%{margin-left:-5px}75%{margin-left:5px}}
+@media(prefers-reduced-motion:reduce){.tile{transition:none}.tile.bad{animation:none}}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:center}
+.chip{background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:3px 12px;font-variant-numeric:tabular-nums}
+#msg{min-height:22px;margin:8px 0 0;font-size:14px;color:var(--mut)}#msg.err{color:var(--bad)}#msg.good{color:var(--ok)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:14px}dt{color:var(--mut)}dd{margin:0;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:left}
+#hist button{display:block;width:100%;text-align:left;margin-bottom:4px;font-size:13px}
+body[data-mode=manual] .auto{display:none}
+small{color:var(--mut)}
+.ws{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0;list-style:none;counter-reset:s}.ws li{counter-increment:s;border:1px solid var(--bd);border-radius:8px;padding:2px 8px 2px 6px;font-weight:600;font-variant-numeric:tabular-nums}.ws li::before{content:counter(s);color:var(--mut);font-size:11px;font-weight:400;margin-right:6px}.ws li.done{opacity:.45}.ws li.cur{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac)}
+</style>
+</head>
+<body data-mode="manual">
+<div class="wrap">
+<header>
+ <div><h1>Slide: an N-Puzzle solver</h1>
+ <p>Play the sliding-tile puzzle yourself, or let A* and IDA* search for a shortest solution and replay it move by move.</p></div>
+ <button id="theme" aria-label="Toggle light or dark theme">Theme</button>
+</header>
+<div class="grid">
+<section>
+ <div class="card">
+  <div class="row">
+   <label>Size<select id="size"><option value="3">3×3 (8-puzzle)</option><option value="4">4×4 (15-puzzle)</option></select></label>
+   <label>Mode<select id="mode"><option value="manual">Manual play</option><option value="auto">Automatic solver</option></select></label>
+   <label>Scramble<select id="depth"><option value="12">Easy (12 moves)</option><option value="30" selected>Medium (30 moves)</option><option value="150">Hard (150 moves)</option></select></label>
+  </div>
+  <div class="row">
+   <button id="rand" class="pri">Randomize</button><button id="reset">Reset puzzle</button><button id="solve" class="pri">Solve puzzle</button>
+  </div>
+  <div id="board" role="group" aria-label="Puzzle board"></div>
+  <div class="chips"><span class="chip">Moves <b id="moves">0</b></span><span class="chip">Time <b id="timer">0:00</b></span><span class="chip" id="status" aria-live="polite">Ready</span></div>
+  <p id="msg" aria-live="polite"></p>
+  <small>Click a highlighted tile or use the arrow keys in manual mode. In solver mode: Space plays or pauses, ← and → step.</small>
+ </div>
+ <div class="card">
+  <h2>Custom puzzle</h2>
+  <div class="row"><input type="text" id="custom" placeholder="Tiles row by row, 0 for blank: 1 2 3 4 5 6 7 8 0" style="flex:1;min-width:200px" aria-label="Custom tile arrangement"><button id="apply">Use puzzle</button></div>
+ </div>
+</section>
+<section>
+ <div class="card">
+  <h2>Search settings</h2>
+  <div class="row">
+   <label>Algorithm<select id="algo"><option value="auto">Auto (A* on 3×3, IDA* above)</option><option value="astar">A*</option><option value="ida">IDA*</option></select></label>
+   <label>Heuristic<select id="heur"><option value="1">Manhattan + linear conflict</option><option value="0">Manhattan only</option></select></label>
+  </div>
+  <div class="row">
+   <label>Time limit (s)<input type="number" id="tl" value="20" min="1" max="600" style="width:90px"></label>
+   <label>A* state limit (thousands)<input type="number" id="nl" value="1500" min="10" max="20000" style="width:110px"></label>
+   <button id="cancel" disabled>Stop search</button>
+  </div>
+  <div class="auto">
+   <h2>Playback</h2>
+   <div class="row"><button id="prev">◀ Previous</button><button id="play" class="pri">Play</button><button id="next">Next ▶</button><button id="rsol">Reset solution</button></div>
+   <div class="row"><label>Animation speed<input type="range" id="speed" min="1" max="10" value="6"></label><b id="step">No solution yet</b></div>
+  </div>
+ </div>
+ <div class="card"><h2>Statistics</h2><dl id="stats"></dl></div>
+ <div class="card"><h2>Written solution</h2><div id="wsol"></div></div>
+ <div class="card"><h2>Compare A* and IDA*</h2><div class="row"><button id="cmp">Run both on this puzzle</button><button id="test">Run self-tests</button></div><div id="cmpout"></div></div>
+ <div class="card"><h2>Recent puzzles</h2><div id="hist"><small>Puzzles you play or solve appear here.</small></div></div>
+</section>
+</div>
+</div>
+
+<script id="eng" type="text/plain">
+function solvable(t,n){var inv=0,b=0,a=[],i,j;for(i=0;i<t.length;i++){if(t[i]===0)b=i;else a.push(t[i]);}
+for(i=0;i<a.length;i++)for(j=i+1;j<a.length;j++)if(a[i]>a[j])inv++;
+if(n%2)return{ok:inv%2===0,inv:inv,r:null};
+var r=n-Math.floor(b/n);return{ok:(inv+r)%2===1,inv:inv,r:r};}
+function md(t,n){var s=0;for(var i=0;i<t.length;i++){var v=t[i];if(v){var g=v-1;s+=Math.abs((g/n|0)-(i/n|0))+Math.abs(g%n-i%n);}}return s;}
+function lineLC(t,n,row,k){var arr=[],j,i,v,g;
+for(j=0;j<n;j++){i=row?k*n+j:j*n+k;v=t[i];if(!v)continue;g=v-1;
+if(row?((g/n|0)===k):(g%n===k))arr.push(row?g%n:(g/n|0));}
+var m=arr.length;if(m<2)return 0;var c=[],tot=0,rem=0,x,y,mx;for(x=0;x<m;x++)c.push(0);
+for(x=0;x<m;x++)for(y=x+1;y<m;y++)if(arr[x]>arr[y]){c[x]++;c[y]++;tot++;}
+while(tot>0){mx=0;for(x=1;x<m;x++)if(c[x]>c[mx])mx=x;tot-=c[mx];
+for(y=0;y<m;y++)if(y!==mx&&c[y]>0&&((y<mx&&arr[y]>arr[mx])||(y>mx&&arr[mx]>arr[y])))c[y]--;
+c[mx]=0;rem++;}
+return 2*rem;}
+function lc(t,n){var s=0;for(var k=0;k<n;k++)s+=lineLC(t,n,1,k)+lineLC(t,n,0,k);return s;}
+function H(t,n,m){return md(t,n)+(m?lc(t,n):0);}
+function lt(x,y){return x.f<y.f||(x.f===y.f&&x.h<y.h);}
+function hpush(a,x){a.push(x);var i=a.length-1,p,q;while(i>0){p=(i-1)>>1;if(lt(a[i],a[p])){q=a[i];a[i]=a[p];a[p]=q;i=p;}else break;}}
+function hpop(a){var top=a[0],l=a.pop();if(a.length){a[0]=l;var i=0,s,L,R,q;for(;;){s=i;L=2*i+1;R=L+1;if(L<a.length&&lt(a[L],a[s]))s=L;if(R<a.length&&lt(a[R],a[s]))s=R;if(s===i)break;q=a[i];a[i]=a[s];a[s]=q;i=s;}}return top;}
+var DR=[-1,1,0,0],DC=[0,0,-1,1];
+function astar(t0,n,m,lim){var T0=Date.now(),exp=0,open=[],best=new Map();
+var key=function(t){return String.fromCharCode.apply(null,t);};
+var h0=H(t0,n,m),k0=key(t0);best.set(k0,0);
+hpush(open,{t:t0,g:0,f:h0,h:h0,b:t0.indexOf(0),p:null,mv:-1,k:k0});
+while(open.length){
+if((exp&511)===0&&Date.now()-T0>lim.ms)return{status:'timeout',exp:exp,mem:best.size};
+if(best.size>lim.nodes)return{status:'limit',exp:exp,mem:best.size};
+var c=hpop(open);if(c.g>best.get(c.k))continue;
+if(c.h===0){var mv=[];for(var x=c;x.p;x=x.p)mv.push(x.mv);mv.reverse();return{status:'ok',moves:mv,exp:exp,mem:best.size};}
+exp++;var br=c.b/n|0,bc=c.b%n;
+for(var d=0;d<4;d++){var nr=br+DR[d],nc=bc+DC[d];if(nr<0||nr>=n||nc<0||nc>=n)continue;
+var p=nr*n+nc,nt=c.t.slice();nt[c.b]=nt[p];nt[p]=0;var g=c.g+1,k=key(nt),old=best.get(k);
+if(old!==undefined&&old<=g)continue;best.set(k,g);var h=H(nt,n,m);
+hpush(open,{t:nt,g:g,f:g+h,h:h,b:p,p:c,mv:d,k:k});}}
+return{status:'nosol',exp:exp,mem:best.size};}
+function ida(t0,n,m,lim){var T0=Date.now(),nodes=0,aborted=null,t=Uint8Array.from(t0),b=t.indexOf(0),path=[];
+function lcSum(p,q){var r1=p/n|0,r2=q/n|0,c1=p%n,c2=q%n,s=lineLC(t,n,1,r1)+lineLC(t,n,0,c1);if(r2!==r1)s+=lineLC(t,n,1,r2);if(c2!==c1)s+=lineLC(t,n,0,c2);return s;}
+function dfs(g,h,last,bound){var f=g+h;if(f>bound)return f;if(h===0)return -1;
+if((++nodes&4095)===0&&Date.now()-T0>lim.ms){aborted='timeout';return Infinity;}
+if(nodes>lim.nodes*1000){aborted='limit';return Infinity;}
+var min=Infinity,br=b/n|0,bc=b%n;
+for(var d=0;d<4;d++){if(last>=0&&d===(last^1))continue;
+var nr=br+DR[d],nc=bc+DC[d];if(nr<0||nr>=n||nc<0||nc>=n)continue;
+var p=nr*n+nc,v=t[p],gp=v-1,gr=gp/n|0,gc=gp%n;
+var nh=h+(Math.abs(gr-br)+Math.abs(gc-bc))-(Math.abs(gr-nr)+Math.abs(gc-nc)),before=0;
+if(m)before=lcSum(p,b);
+var ob=b;t[b]=v;t[p]=0;b=p;if(m)nh+=lcSum(p,ob)-before;
+path.push(d);var r=dfs(g+1,nh,d,bound);if(r===-1)return -1;path.pop();
+t[p]=v;t[ob]=0;b=ob;if(aborted)return Infinity;if(r<min)min=r;}
+return min;}
+var hc=H(t,n,m),bound=hc,res;
+for(;;){var r=dfs(0,hc,-1,bound);
+if(r===-1){res={status:'ok',moves:path.slice()};break;}
+if(aborted){res={status:aborted};break;}
+if(r===Infinity){res={status:'nosol'};break;}
+bound=r;}
+res.exp=nodes;res.mem=bound;return res;}
+function solve(msg){var t0=Date.now(),lim={ms:msg.ms,nodes:msg.nodes};
+var r=msg.algo==='ida'?ida(msg.tiles,msg.n,msg.heur,lim):astar(msg.tiles,msg.n,msg.heur,lim);
+r.ms=Date.now()-t0;r.algo=msg.algo;return r;}
+</script>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+var ENG=$('#eng').textContent;
+var E=new Function(ENG+';return {solve:solve,solvable:solvable,md:md,lc:lc};')();
+var DR=[-1,1,0,0],DC=[0,0,-1,1];
+var S={n:3,tiles:[],start:[],moves:0,sol:null,step:0,mode:'manual',el:0,timer:null,playing:false,hist:[],stats:null,searching:false,entry:null,tick:null};
+var worker=null;
+
+function goal(n){var g=[];for(var i=1;i<n*n;i++)g.push(i);g.push(0);return g}
+function isGoal(t){for(var i=0;i<t.length;i++)if(t[i]!==(i+1)%t.length)return false;return true}
+function msg(t,c){var m=$('#msg');m.textContent=t||'';m.className=c||''}
+function verify(t,n,mv){t=t.slice();for(var k=0;k<mv.length;k++){var b=t.indexOf(0),r=(b/n|0)+DR[mv[k]],c=b%n+DC[mv[k]];if(r<0||r>=n||c<0||c>=n)return false;var p=r*n+c;t[b]=t[p];t[p]=0}return isGoal(t)}
+
+function scramble(n,depth){for(var tries=0;tries<20;tries++){var t=goal(n),last=-1;
+ for(var i=0;i<depth;i++){var b=t.indexOf(0),opts=[];
+  for(var d=0;d<4;d++){if(last>=0&&d===(last^1))continue;var r=(b/n|0)+DR[d],c=b%n+DC[d];if(r>=0&&r<n&&c>=0&&c<n)opts.push(d)}
+  var dd=opts[Math.random()*opts.length|0],p=((b/n|0)+DR[dd])*n+b%n+DC[dd];t[b]=t[p];t[p]=0;last=dd}
+ if(!isGoal(t))return t}return t}
+
+function build(){var B=$('#board');B.innerHTML='';for(var v=0;v<S.n*S.n;v++){var e=document.createElement(v?'button':'div');e.dataset.v=v;e.className=v?'tile':'tile blank';if(v)e.textContent=v;else e.setAttribute('aria-hidden','true');B.appendChild(e)}}
+function place(){var n=S.n,B=$('#board'),b=S.tiles.indexOf(0);B.style.setProperty('--n',n);
+ for(var k=0;k<B.children.length;k++){var el=B.children[k],v=+el.dataset.v,i=v?S.tiles.indexOf(v):b,r=i/n|0,c=i%n;
+  el.style.transform='translate('+c*100+'%,'+r*100+'%)';
+  if(v){var adj=Math.abs(r-(b/n|0))+Math.abs(c-b%n)===1;el.classList.toggle('can',adj&&S.mode==='manual');el.setAttribute('aria-label','Tile '+v+', row '+(r+1)+' column '+(c+1)+(adj?', can move':''))}}}
+
+function load(n,tiles,entry){stopPlay();stopTimer();S.el=0;S.n=n;$('#size').value=n;build();S.tiles=tiles.slice();S.start=tiles.slice();S.moves=0;S.step=0;
+ S.sol=entry&&entry.sol||null;S.stats=entry&&entry.stats||null;
+ var B=$('#board');B.classList.add('nt');place();requestAnimationFrame(function(){requestAnimationFrame(function(){B.classList.remove('nt')})});
+ if(!entry){var key=n+':'+tiles.join(',');var found=S.hist.filter(function(h){return h.key===key})[0];
+  if(found)entry=found;else{entry={key:key,n:n,tiles:tiles.slice(),sol:null,stats:null};S.hist.unshift(entry);S.hist=S.hist.slice(0,8)}}
+ S.entry=entry;S.sol=entry.sol;S.stats=entry.stats;msg('');ui();renderHist()}
+
+function ui(){var n=S.n,md=E.md(S.start,n),lc=E.lc(S.start,n);
+ $('#moves').textContent=S.mode==='auto'?S.step:S.moves;
+ var m=Math.floor(S.el/1000);$('#timer').textContent=(m/60|0)+':'+('0'+m%60).slice(-2);
+ $('#status').textContent=S.searching?'Searching…':isGoal(S.tiles)&&(S.moves||S.step)?'Solved':S.sol?'Solution ready ('+S.sol.length+' moves)':S.playing?'Playing':'Ready';
+ $('#step').textContent=S.sol?'Step '+S.step+' / '+S.sol.length:'No solution yet';
+ $('#solve').disabled=S.searching;$('#cancel').disabled=!S.searching;
+ $('#prev').disabled=!S.sol||S.step===0||S.searching;$('#next').disabled=!S.sol||S.step>=S.sol.length;
+ $('#rsol').disabled=!S.sol||S.step===0;$('#play').disabled=!S.sol;$('#play').textContent=S.playing?'Pause':(S.sol&&S.step>0&&S.step<S.sol.length?'Resume':'Play');
+ var h=md+lc,ratio=h/(n*n),est=ratio<1.1?'easy':ratio<1.9?'medium':'hard';
+ var rows=[['Grid',n+'×'+n],['Initial Manhattan distance',md],['Initial linear conflicts',lc/2+' (adds '+lc+' to the estimate)'],['Difficulty (rough guess from the estimate, not verified)',est]];
+ var st=S.stats;if(st){rows.push(['Algorithm',st.algo],['Heuristic',st.heur],['Solution length',st.len+' moves'+(st.opt?' (optimal)':'')],['States '+(st.algo==='A*'?'expanded':'visited'),st.exp.toLocaleString()],['Search time',st.ms+' ms'],[st.algo==='A*'?'States stored (peak)':'Final cost bound',st.mem.toLocaleString()],['Solving progress',S.sol?S.step+' of '+S.sol.length+' moves replayed':'—'])}
+ $('#stats').innerHTML=rows.map(function(r){return'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>'}).join('');renderWritten();
+ place()}
+
+function renderWritten(){var w=$('#wsol');if(!S.sol){w.innerHTML='<small>Solve the puzzle to see the tile sequence.</small>';return}
+ var t=S.start.slice(),n=S.n,seq=[];S.sol.forEach(function(d){var b=t.indexOf(0),p=((b/n|0)+DR[d])*n+b%n+DC[d];seq.push(t[p]);t[b]=t[p];t[p]=0});
+ w.innerHTML='<p style="margin:0 0 8px"><small>Starting from the original arrangement, slide these tiles into the empty cell in this order. The highlighted tile is next.</small></p><ol class="ws">'+seq.map(function(v,i){return'<li class="'+(i<S.step?'done':i===S.step?'cur':'')+'">'+v+'</li>'}).join('')+'</ol>'}
+function renderHist(){var h=$('#hist');if(!S.hist.length){h.innerHTML='<small>Puzzles you play or solve appear here.</small>';return}
+ h.innerHTML='';S.hist.forEach(function(e,i){var b=document.createElement('button');b.textContent=e.n+'×'+e.n+' · '+e.tiles.join(' ')+(e.sol?' · '+e.sol.length+' moves':'');b.onclick=function(){load(e.n,e.tiles,e)};h.appendChild(b)})}
+
+function startTimer(){if(S.timer)return;var t0=Date.now()-S.el;S.timer=setInterval(function(){S.el=Date.now()-t0;ui()},250)}
+function stopTimer(){clearInterval(S.timer);S.timer=null}
+
+function manual(i,el){if(S.mode!=='manual'||S.searching)return;var n=S.n,b=S.tiles.indexOf(0);
+ if(Math.abs((i/n|0)-(b/n|0))+Math.abs(i%n-b%n)!==1){if(el){el.classList.add('bad');setTimeout(function(){el.classList.remove('bad')},300)}msg('That tile can’t move. Only tiles next to the empty cell slide.','err');return}
+ if(!S.moves)startTimer();S.tiles[b]=S.tiles[i];S.tiles[i]=0;S.moves++;S.sol=null;S.stats=null;S.step=0;msg('');
+ if(isGoal(S.tiles)){stopTimer();msg('Solved in '+S.moves+' moves.','good')}ui()}
+$('#board').addEventListener('click',function(e){var el=e.target.closest('.tile');if(el&&+el.dataset.v)manual(S.tiles.indexOf(+el.dataset.v),el)});
+
+function mv(d){var n=S.n,b=S.tiles.indexOf(0),p=((b/n|0)+DR[d])*n+b%n+DC[d];S.tiles[b]=S.tiles[p];S.tiles[p]=0}
+function fwd(){if(!S.sol||S.step>=S.sol.length)return false;mv(S.sol[S.step]);S.step++;ui();return true}
+function back(){if(!S.sol||S.step<=0)return;mv(S.sol[S.step-1]^1);S.step--;ui()}
+function delay(){return 1100-100*(+$('#speed').value)}
+function stopPlay(){S.playing=false;clearTimeout(S.pt)}
+function loop(){if(!S.playing)return;$('#board').style.setProperty('--dur',Math.min(delay()*.8,260)+'ms');
+ if(!fwd()){stopPlay();ui();return}S.pt=setTimeout(loop,delay())}
+function togglePlay(){if(!S.sol)return;if(S.playing){stopPlay();ui();return}
+ if(S.step>=S.sol.length)rsol();S.playing=true;ui();loop()}
+function rsol(){stopPlay();S.tiles=S.start.slice();S.step=0;ui()}
+
+function runSolver(algo){return new Promise(function(res){
+ var m={tiles:S.start,n:S.n,algo:algo,heur:+$('#heur').value,ms:+$('#tl').value*1000,nodes:+$('#nl').value*1000},w=null;
+ try{w=new Worker(URL.createObjectURL(new Blob([ENG+';onmessage=function(e){postMessage(solve(e.data))}'],{type:'text/javascript'})))}catch(x){w=null}
+ if(!w){worker=null;setTimeout(function(){res(E.solve(m))},30);return}
+ worker={stop:function(){w.terminate();res({status:'cancelled'})}};
+ w.onmessage=function(e){w.terminate();worker=null;res(e.data)};
+ w.onerror=function(){w.terminate();worker=null;res(E.solve(m))};
+ w.postMessage(m)})}
+
+function pick(){var a=$('#algo').value;return a==='auto'?(S.n<=3?'astar':'ida'):a}
+async function doSolve(){if(S.searching)return;setMode('auto');rsol();
+ var s=E.solvable(S.start,S.n);if(!s.ok){msg('This puzzle can’t be solved: '+s.inv+' inversions'+(S.n%2?' (odd) on an odd-width grid, which needs an even count.':' with the blank on row '+s.r+' from the bottom breaks the parity rule for even-width grids.'),'err');return}
+ var a=pick(),t=Date.now();S.searching=true;ui();
+ S.tick=setInterval(function(){msg('Searching with '+(a==='astar'?'A*':'IDA*')+'… '+((Date.now()-t)/1000).toFixed(1)+' s elapsed.')},200);
+ var r=await runSolver(a);clearInterval(S.tick);S.searching=false;
+ if(r.status==='ok'){if(!verify(S.start,S.n,r.moves)){msg('Internal error: the solution failed verification, so it was discarded.','err');ui();return}
+  S.sol=r.moves;S.step=0;S.stats={algo:a==='astar'?'A*':'IDA*',heur:$('#heur').value==='1'?'Manhattan + linear conflict':'Manhattan',len:r.moves.length,opt:true,exp:r.exp,ms:r.ms,mem:r.mem};
+  S.entry.sol=S.sol;S.entry.stats=S.stats;renderHist();msg('Found a solution in '+r.moves.length+' moves. Press Play or step through it.','good')}
+ else if(r.status==='timeout')msg('Stopped: the time limit was reached before a solution was found ('+r.exp.toLocaleString()+' states searched). Raise the limit or try an easier scramble.','err');
+ else if(r.status==='limit')msg('Stopped: the state limit was reached, so no solution was found. A* needs memory for every state; try IDA* or raise the limit.','err');
+ else if(r.status==='cancelled')msg('Search cancelled. No solution was found.','err');
+ else msg('No solution exists for this arrangement.','err');
+ ui()}
+
+function setMode(m){S.mode=m;$('#mode').value=m;document.body.dataset.mode=m;if(m==='manual'){stopPlay();S.tiles=S.start.slice();S.step=0;S.moves=0;S.el=0;stopTimer()}ui()}
+function randomize(){load(+$('#size').value,scramble(+$('#size').value,+$('#depth').value))}
+
+$('#rand').onclick=randomize;
+$('#size').onchange=randomize;
+$('#mode').onchange=function(){setMode(this.value)};
+$('#reset').onclick=function(){load(S.n,S.start,S.entry)};
+$('#solve').onclick=doSolve;
+$('#cancel').onclick=function(){if(worker)worker.stop()};
+$('#prev').onclick=function(){stopPlay();back()};$('#next').onclick=function(){stopPlay();fwd()};$('#play').onclick=togglePlay;$('#rsol').onclick=rsol;
+$('#theme').onclick=function(){var d=document.documentElement,dark=d.dataset.theme?d.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;d.dataset.theme=dark?'light':'dark'};
+
+$('#apply').onclick=function(){var n=+$('#size').value,raw=$('#custom').value.trim().split(/[\s,|]+/).filter(Boolean),t=raw.map(function(x){return /^\d+$/.test(x)?+x:0}),N=n*n;
+ if(t.length!==N){msg('Enter exactly '+N+' values for a '+n+'×'+n+' grid ('+t.length+' given).','err');return}
+ var seen={};for(var i=0;i<N;i++){if(t[i]<0||t[i]>=N||seen[t[i]]){msg('Use each of 0 to '+(N-1)+' exactly once, with 0 as the blank.','err');return}seen[t[i]]=1}
+ var s=E.solvable(t,n);if(!s.ok){msg('That arrangement is unsolvable: it has '+s.inv+' inversions'+(n%2?', but an odd-width grid needs an even number.':' and the blank is on row '+s.r+' from the bottom; an even-width grid needs inversions plus that row to be odd.'),'err');return}
+ load(n,t)};
+
+async function compare(){if(S.searching)return;S.searching=true;ui();var out=$('#cmpout');out.textContent='Running both algorithms…';var rows='';
+ for(var a of ['astar','ida']){var r=await runSolver(a);rows+='<tr><td>'+(a==='astar'?'A*':'IDA*')+'</td><td>'+(r.status==='ok'?r.moves.length+(verify(S.start,S.n,r.moves)?'':' (invalid!)'):r.status)+'</td><td>'+(r.exp||0).toLocaleString()+'</td><td>'+(r.ms||0)+' ms</td><td>'+(r.mem||0).toLocaleString()+'</td></tr>'}
+ out.innerHTML='<table><tr><th>Algorithm</th><th>Moves</th><th>States</th><th>Time</th><th>Memory stat</th></tr>'+rows+'</table><small>Memory stat: states stored for A*, cost bound (depth) for IDA*.</small>';S.searching=false;ui()}
+$('#cmp').onclick=compare;
+
+function selfTest(){var out=[],ok=function(c,n){out.push((c?'PASS ':'FAIL ')+n)};
+ ok(E.solvable([1,2,3,4,5,6,7,8,0],3).ok,'3×3 goal is solvable');
+ ok(!E.solvable([1,2,3,4,5,6,8,7,0],3).ok,'3×3 swapped pair is unsolvable');
+ ok(!E.solvable([1,2,3,4,5,6,7,8,9,10,11,12,13,15,14,0],4).ok,'4×4 with 14 and 15 swapped is unsolvable');
+ ok(E.solvable([1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,15],4).ok,'4×4 one move from goal is solvable');
+ var hard=[8,6,7,2,5,4,3,0,1];
+ [['astar',0],['astar',1],['ida',0],['ida',1]].forEach(function(c){var r=E.solve({tiles:hard,n:3,algo:c[0],heur:c[1],ms:30000,nodes:3e6});ok(r.status==='ok'&&r.moves.length===31&&verify(hard,3,r.moves),c[0]+' heuristic '+c[1]+': hardest 8-puzzle takes 31 legal moves')});
+ for(var k=0;k<3;k++){var t=scramble(4,14),a=E.solve({tiles:t,n:4,algo:'astar',heur:1,ms:20000,nodes:2e6}),b=E.solve({tiles:t,n:4,algo:'ida',heur:1,ms:20000,nodes:2e6});
+  ok(a.status==='ok'&&b.status==='ok'&&a.moves.length===b.moves.length&&verify(t,4,a.moves)&&verify(t,4,b.moves),'4×4 scramble '+(k+1)+': A* and IDA* agree ('+(a.moves&&a.moves.length)+' moves), paths legal')}
+ var g=goal(4);ok(isGoal(g)&&E.md(g,4)===0&&E.lc(g,4)===0,'4×4 goal recognised, heuristics are 0');
+ ok(E.lc([2,1,3,4,5,6,7,8,0],3)===2,'linear conflict counted for a swapped row pair');
+ return out}
+$('#test').onclick=function(){$('#cmpout').textContent='Running self-tests…';setTimeout(function(){var r=selfTest();$('#cmpout').innerHTML=r.map(function(x){return'<div style="color:var(--'+(x.indexOf('PASS')===0?'ok':'bad')+')">'+x+'</div>'}).join('')},30)};
+
+document.addEventListener('keydown',function(e){if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)&&e.key!==' ')return;if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;
+ var n=S.n,b=S.tiles.indexOf(0);
+ if(S.mode==='manual'){var map={ArrowLeft:b%n<n-1?b+1:-1,ArrowRight:b%n>0?b-1:-1,ArrowUp:b+n<n*n?b+n:-1,ArrowDown:b-n>=0?b-n:-1};
+  if(e.key in map){e.preventDefault();if(map[e.key]>=0)manual(map[e.key]);else msg('No tile can slide that way.','err')}}
+ else{if(e.key===' '&&e.target.tagName!=='BUTTON'){e.preventDefault();togglePlay()}else if(e.key==='ArrowRight'){e.preventDefault();stopPlay();fwd()}else if(e.key==='ArrowLeft'){e.preventDefault();stopPlay();back()}}});
+
+load(3,scramble(3,30));
+})();
+</script>
+</body>
+</html>
